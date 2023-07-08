@@ -4,18 +4,10 @@ package forklift
 import (
 	"context"
 	"fmt"
-	"go/ast"
-	"go/token"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
-
-// Package is file information for a Go package.
-type Package struct {
-	Files     []*ast.File
-	Positions *token.FileSet
-}
 
 // Loader provides Packages for import paths.
 type Loader struct {
@@ -30,42 +22,39 @@ type Loader struct {
 
 	// Flags is the build system command-line flags.
 	Flags []string
+
+	// Mode is the information to include.
+	Mode packages.LoadMode
 }
 
-// LoadPackage returns the package for importPath.
-func (l Loader) LoadPackage(importPath string) (*Package, error) {
-	fset := token.NewFileSet()
-	config := &packages.Config{
+// LoadPackage returns the package for importPath, or nil if it does not exist.
+func (l Loader) LoadPackage(importPath string) (*packages.Package, error) {
+	ps, err := packages.Load(&packages.Config{
 		Context:    l.Context,
 		Dir:        l.Dir,
 		Env:        l.Env,
 		BuildFlags: l.Flags,
-		Fset:       fset,
-		Mode:       packages.NeedSyntax,
-	}
-	ps, err := packages.Load(config, importPath)
+		Mode:       l.Mode,
+	}, importPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
 	}
 	if len(ps) == 0 {
 		return nil, nil
 	}
-	return &Package{Files: ps[0].Syntax, Positions: fset}, nil
+	return ps[0], nil
 }
 
-// LoadTestPackage returns the test package for importPath.
-func (l Loader) LoadTestPackage(importPath string) (*Package, error) {
-	fset := token.NewFileSet()
-	config := &packages.Config{
+// LoadTestPackage returns the test package for importPath, or nil if it does not exist.
+func (l Loader) LoadTestPackage(importPath string) (*packages.Package, error) {
+	ps, err := packages.Load(&packages.Config{
 		Context:    l.Context,
 		Dir:        l.Dir,
 		Env:        l.Env,
 		BuildFlags: l.Flags,
-		Fset:       fset,
+		Mode:       l.Mode,
 		Tests:      true,
-		Mode:       packages.NeedFiles | packages.NeedName | packages.NeedSyntax,
-	}
-	ps, err := packages.Load(config, importPath)
+	}, importPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
 	}
@@ -73,7 +62,7 @@ func (l Loader) LoadTestPackage(importPath string) (*Package, error) {
 		if p.PkgPath == importPath {
 			for _, f := range p.GoFiles {
 				if strings.HasSuffix(f, "_test.go") {
-					return &Package{Files: p.Syntax, Positions: fset}, nil
+					return p, nil
 				}
 			}
 		}
@@ -81,42 +70,51 @@ func (l Loader) LoadTestPackage(importPath string) (*Package, error) {
 	return nil, nil
 }
 
-// LoadExternalTestPackage returns the external test package for importPath.
-func (l Loader) LoadExternalTestPackage(importPath string) (*Package, error) {
-	fset := token.NewFileSet()
-	config := &packages.Config{
+// LoadExternalTestPackage returns the external test package for importPath, or nil if it does not exist.
+func (l Loader) LoadExternalTestPackage(importPath string) (*packages.Package, error) {
+	ps, err := packages.Load(&packages.Config{
 		Context:    l.Context,
 		Dir:        l.Dir,
 		Env:        l.Env,
 		BuildFlags: l.Flags,
-		Fset:       fset,
+		Mode:       l.Mode,
 		Tests:      true,
-		Mode:       packages.NeedFiles | packages.NeedName | packages.NeedSyntax,
-	}
-	ps, err := packages.Load(config, importPath)
+	}, importPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
 	}
-	pkgPath := importPath + "_test"
 	for _, p := range ps {
-		if p.PkgPath == pkgPath {
-			return &Package{Files: p.Syntax, Positions: fset}, nil
+		if strings.HasSuffix(p.Name, "_test") {
+			return p, nil
 		}
 	}
 	return nil, nil
 }
 
-// LoadPackage returns the package for importPath.
-func LoadPackage(importPath string) (*Package, error) {
-	return Loader{}.LoadPackage(importPath)
+var mode packages.LoadMode = packages.NeedName |
+	packages.NeedFiles |
+	packages.NeedCompiledGoFiles |
+	packages.NeedImports |
+	packages.NeedDeps |
+	packages.NeedTypes |
+	packages.NeedSyntax |
+	packages.NeedTypesInfo |
+	packages.NeedTypesSizes |
+	packages.NeedModule |
+	packages.NeedEmbedFiles |
+	packages.NeedEmbedPatterns
+
+// LoadPackage returns the package for importPath, or nil if it does not exist.
+func LoadPackage(importPath string) (*packages.Package, error) {
+	return Loader{Mode: mode}.LoadPackage(importPath)
 }
 
-// LoadTestPackage returns the test package for importPath.
-func LoadTestPackage(importPath string) (*Package, error) {
-	return Loader{}.LoadTestPackage(importPath)
+// LoadTestPackage returns the test package for importPath, or nil if it does not exist.
+func LoadTestPackage(importPath string) (*packages.Package, error) {
+	return Loader{Mode: mode}.LoadTestPackage(importPath)
 }
 
-// LoadExternalTestPackage returns the external test package for importPath.
-func LoadExternalTestPackage(importPath string) (*Package, error) {
-	return Loader{}.LoadExternalTestPackage(importPath)
+// LoadExternalTestPackage returns the external test package for importPath, or nil if it does not exist.
+func LoadExternalTestPackage(importPath string) (*packages.Package, error) {
+	return Loader{Mode: mode}.LoadExternalTestPackage(importPath)
 }
