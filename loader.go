@@ -27,100 +27,113 @@ type Loader struct {
 	Mode packages.LoadMode
 }
 
-// LoadPackage returns the package for importPath, or nil if it does not exist.
-func (l Loader) LoadPackage(importPath string) (*packages.Package, error) {
-	ps, err := packages.Load(&packages.Config{
-		Context:    l.Context,
-		Dir:        l.Dir,
-		Env:        l.Env,
-		BuildFlags: l.Flags,
-		Mode:       l.Mode,
-	}, importPath)
+// LoadPackage returns the package for path, or nil if it does not exist.
+func (l Loader) LoadPackage(path string) (*packages.Package, error) {
+	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode}, path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
+		return nil, fmt.Errorf("cannot load package %s: %v", path, err)
 	}
-	if errs := ps[0].Errors; len(errs) > 0 {
-		return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
-	}
-	return ps[0], nil
-}
-
-// LoadTestPackage returns the test package for importPath, or nil if it does not exist.
-func (l Loader) LoadTestPackage(importPath string) (*packages.Package, error) {
-	ps, err := packages.Load(&packages.Config{
-		Context:    l.Context,
-		Dir:        l.Dir,
-		Env:        l.Env,
-		BuildFlags: l.Flags,
-		Mode:       l.Mode,
-		Tests:      true,
-	}, importPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
-	}
-	for _, p := range ps {
-		if p.PkgPath == importPath {
-			for _, f := range p.GoFiles {
-				if strings.HasSuffix(f, "_test.go") {
-					if errs := p.Errors; len(errs) > 0 {
-						return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
-					}
-					return p, nil
-				}
-			}
-		}
-	}
-	panic(ps)
-}
-
-// LoadExternalTestPackage returns the external test package for importPath, or nil if it does not exist.
-func (l Loader) LoadExternalTestPackage(importPath string) (*packages.Package, error) {
-	ps, err := packages.Load(&packages.Config{
-		Context:    l.Context,
-		Dir:        l.Dir,
-		Env:        l.Env,
-		BuildFlags: l.Flags,
-		Mode:       l.Mode,
-		Tests:      true,
-	}, importPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
-	}
+	var match *packages.Package
 	for _, p := range ps {
 		if strings.HasSuffix(p.Name, "_test") {
-			if errs := p.Errors; len(errs) > 0 {
-				return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
+			continue
+		}
+		for _, f := range p.GoFiles {
+			if strings.HasSuffix(f, "_test.go") {
+				continue
 			}
-			return p, nil
+		}
+		match = p
+		break
+	}
+	if match == nil {
+		return nil, nil
+	}
+	for _, err := range match.Errors {
+		if err.Kind == packages.ListError {
+			return nil, nil
 		}
 	}
-	panic(ps)
+	return match, nil
 }
 
-var mode packages.LoadMode = packages.NeedName |
-	packages.NeedFiles |
-	packages.NeedCompiledGoFiles |
-	packages.NeedImports |
+// LoadTestPackage returns the test package for path, or nil if it does not exist.
+func (l Loader) LoadTestPackage(path string) (*packages.Package, error) {
+	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode, Tests: true}, path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load package %s: %v", path, err)
+	}
+	var match *packages.Package
+	for _, p := range ps {
+		if strings.HasSuffix(p.Name, "_test") {
+			continue
+		}
+		for _, f := range p.GoFiles {
+			if strings.HasSuffix(f, "_test.go") {
+				match = p
+				break
+			}
+		}
+	}
+	if match == nil {
+		return nil, nil
+	}
+	for _, err := range match.Errors {
+		if err.Kind == packages.ListError {
+			return nil, nil
+		}
+	}
+	return match, nil
+}
+
+// LoadExternalTestPackage returns the external test package for path, or nil if it does not exist.
+func (l Loader) LoadExternalTestPackage(path string) (*packages.Package, error) {
+	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode, Tests: true}, path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load package %s: %v", path, err)
+	}
+	var match *packages.Package
+	for _, p := range ps {
+		if strings.HasSuffix(p.Name, "_test") {
+			match = p
+			break
+		}
+	}
+	if match == nil {
+		return nil, nil
+	}
+	for _, err := range match.Errors {
+		if err.Kind == packages.ListError {
+			return nil, nil
+		}
+	}
+	return match, nil
+}
+
+var mode packages.LoadMode = packages.NeedCompiledGoFiles |
 	packages.NeedDeps |
-	packages.NeedTypes |
-	packages.NeedSyntax |
-	packages.NeedTypesInfo |
-	packages.NeedTypesSizes |
-	packages.NeedModule |
 	packages.NeedEmbedFiles |
-	packages.NeedEmbedPatterns
+	packages.NeedEmbedPatterns |
+	packages.NeedFiles |
+	packages.NeedImports |
+	packages.NeedModule |
+	packages.NeedName |
+	packages.NeedSyntax |
+	packages.NeedTypes |
+	packages.NeedTypesInfo |
+	packages.NeedTypesSizes
 
-// LoadPackage returns the package for importPath, or nil if it does not exist.
-func LoadPackage(importPath string) (*packages.Package, error) {
-	return Loader{Mode: mode}.LoadPackage(importPath)
+// LoadPackage returns the package for path, or nil if it does not exist.
+func LoadPackage(path string) (*packages.Package, error) {
+	return Loader{Mode: mode}.LoadPackage(path)
 }
 
-// LoadTestPackage returns the test package for importPath, or nil if it does not exist.
-func LoadTestPackage(importPath string) (*packages.Package, error) {
-	return Loader{Mode: mode}.LoadTestPackage(importPath)
+// LoadTestPackage returns the test package for path, or nil if it does not exist.
+func LoadTestPackage(path string) (*packages.Package, error) {
+	return Loader{Mode: mode}.LoadTestPackage(path)
 }
 
-// LoadExternalTestPackage returns the external test package for importPath, or nil if it does not exist.
-func LoadExternalTestPackage(importPath string) (*packages.Package, error) {
-	return Loader{Mode: mode}.LoadExternalTestPackage(importPath)
+// LoadExternalTestPackage returns the external test package for path, or nil if it does not exist.
+func LoadExternalTestPackage(path string) (*packages.Package, error) {
+	return Loader{Mode: mode}.LoadExternalTestPackage(path)
 }
