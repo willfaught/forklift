@@ -27,11 +27,15 @@ type Loader struct {
 	Mode packages.LoadMode
 }
 
+func loadError(err error) error {
+	return fmt.Errorf("cannot load package: %v", err)
+}
+
 // LoadPackage returns the package for path, or nil if it does not exist.
 func (l Loader) LoadPackage(path string) (*packages.Package, error) {
 	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode}, path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load package %s: %v", path, err)
+		return nil, loadError(err)
 	}
 	var match *packages.Package
 	for _, p := range ps {
@@ -61,7 +65,7 @@ func (l Loader) LoadPackage(path string) (*packages.Package, error) {
 func (l Loader) LoadTestPackage(path string) (*packages.Package, error) {
 	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode, Tests: true}, path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load package %s: %v", path, err)
+		return nil, loadError(err)
 	}
 	var match *packages.Package
 	for _, p := range ps {
@@ -90,7 +94,7 @@ func (l Loader) LoadTestPackage(path string) (*packages.Package, error) {
 func (l Loader) LoadExternalTestPackage(path string) (*packages.Package, error) {
 	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode, Tests: true}, path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load package %s: %v", path, err)
+		return nil, loadError(err)
 	}
 	var match *packages.Package
 	for _, p := range ps {
