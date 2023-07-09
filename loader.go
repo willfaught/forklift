@@ -42,6 +42,9 @@ func (l Loader) LoadPackage(importPath string) (*packages.Package, error) {
 	if len(ps) == 0 {
 		return nil, nil
 	}
+	if errs := ps[0].Errors; len(errs) > 0 {
+		return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
+	}
 	return ps[0], nil
 }
 
@@ -62,6 +65,9 @@ func (l Loader) LoadTestPackage(importPath string) (*packages.Package, error) {
 		if p.PkgPath == importPath {
 			for _, f := range p.GoFiles {
 				if strings.HasSuffix(f, "_test.go") {
+					if errs := p.Errors; len(errs) > 0 {
+						return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
+					}
 					return p, nil
 				}
 			}
@@ -85,6 +91,9 @@ func (l Loader) LoadExternalTestPackage(importPath string) (*packages.Package, e
 	}
 	for _, p := range ps {
 		if strings.HasSuffix(p.Name, "_test") {
+			if errs := p.Errors; len(errs) > 0 {
+				return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
+			}
 			return p, nil
 		}
 	}
