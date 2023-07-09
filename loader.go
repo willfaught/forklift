@@ -38,13 +38,14 @@ func (l Loader) LoadPackage(path string) (*packages.Package, error) {
 		return nil, loadError(err)
 	}
 	var match *packages.Package
+loop:
 	for _, p := range ps {
 		if strings.HasSuffix(p.Name, "_test") {
 			continue
 		}
 		for _, f := range p.GoFiles {
 			if strings.HasSuffix(f, "_test.go") {
-				continue
+				continue loop
 			}
 		}
 		match = p
@@ -68,6 +69,7 @@ func (l Loader) LoadTestPackage(path string) (*packages.Package, error) {
 		return nil, loadError(err)
 	}
 	var match *packages.Package
+loop:
 	for _, p := range ps {
 		if strings.HasSuffix(p.Name, "_test") {
 			continue
@@ -75,7 +77,7 @@ func (l Loader) LoadTestPackage(path string) (*packages.Package, error) {
 		for _, f := range p.GoFiles {
 			if strings.HasSuffix(f, "_test.go") {
 				match = p
-				break
+				break loop
 			}
 		}
 	}
