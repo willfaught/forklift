@@ -70,7 +70,7 @@ func (l Loader) LoadTestPackage(importPath string) (*packages.Package, error) {
 			}
 		}
 	}
-	return nil, nil
+	panic(ps)
 }
 
 // LoadExternalTestPackage returns the external test package for importPath, or nil if it does not exist.
@@ -94,7 +94,7 @@ func (l Loader) LoadExternalTestPackage(importPath string) (*packages.Package, e
 			return p, nil
 		}
 	}
-	return nil, nil
+	panic(ps)
 }
 
 var mode packages.LoadMode = packages.NeedName |
