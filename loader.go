@@ -39,9 +39,6 @@ func (l Loader) LoadPackage(importPath string) (*packages.Package, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot load package %s: %v", importPath, err)
 	}
-	if len(ps) == 0 {
-		return nil, nil
-	}
 	if errs := ps[0].Errors; len(errs) > 0 {
 		return nil, fmt.Errorf("cannot load package %s: %v", importPath, errs[0])
 	}
