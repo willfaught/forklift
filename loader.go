@@ -62,11 +62,6 @@ func loadError(err error) error {
 // ErrNotFound neans the package was not found.
 var ErrNotFound = fmt.Errorf("package not found")
 
-var (
-	errParse = errors.New("parse error")
-	errType  = fmt.Errorf("type error")
-)
-
 func handle(p *packages.Package) (*packages.Package, error) {
 	if p == nil {
 		return nil, ErrNotFound
@@ -76,10 +71,12 @@ func handle(p *packages.Package) (*packages.Package, error) {
 		switch err.Kind {
 		case packages.ListError:
 			return nil, ErrNotFound
-		case packages.ParseError:
-			errs = append(errs, errParse)
-		case packages.TypeError:
-			errs = append(errs, errType)
+		case packages.ParseError, packages.TypeError:
+			var prefix string
+			if err.Pos != "" && err.Pos != "-" {
+				prefix = err.Pos + ": "
+			}
+			errs = append(errs, errors.New(prefix+err.Msg))
 		default:
 			panic(err.Kind)
 		}
