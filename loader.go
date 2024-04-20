@@ -151,7 +151,8 @@ func (l Loader) LoadExternalTestPackage(path string) (*packages.Package, error) 
 	return handle(match)
 }
 
-var mode packages.LoadMode = packages.NeedCompiledGoFiles |
+// DefaultMode is the default [Loader] mode.
+var DefaultMode packages.LoadMode = packages.NeedCompiledGoFiles |
 	packages.NeedDeps |
 	packages.NeedEmbedFiles |
 	packages.NeedEmbedPatterns |
@@ -167,17 +168,17 @@ var mode packages.LoadMode = packages.NeedCompiledGoFiles |
 // LoadPackage returns the package for path.
 // It returns [ErrNotFound] if the package is not found, and other errors.
 func LoadPackage(path string) (*packages.Package, error) {
-	return Loader{Mode: mode}.LoadPackage(path)
+	return Loader{Mode: DefaultMode}.LoadPackage(path)
 }
 
 // LoadTestPackage returns the test package for path.
 // It returns [ErrNotFound] if the package is not found, and other errors.
 func LoadTestPackage(path string) (*packages.Package, error) {
-	return Loader{Mode: mode}.LoadTestPackage(path)
+	return Loader{Mode: DefaultMode}.LoadTestPackage(path)
 }
 
 // LoadExternalTestPackage returns the external test package for path.
 // It returns [ErrNotFound] if the package is not found, and other errors.
 func LoadExternalTestPackage(path string) (*packages.Package, error) {
-	return Loader{Mode: mode}.LoadExternalTestPackage(path)
+	return Loader{Mode: DefaultMode}.LoadExternalTestPackage(path)
 }
