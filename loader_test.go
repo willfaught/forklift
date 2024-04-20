@@ -19,8 +19,8 @@ func check(t *testing.T, p *packages.Package, err error, exists bool) {
 		if p != nil {
 			t.Error("package is not nil")
 		}
-		if err != nil {
-			t.Error("error is nil")
+		if err != ErrNotFound {
+			t.Errorf("error is not ErrNotFound: %v", err)
 		}
 	}
 }

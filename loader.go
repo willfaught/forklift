@@ -30,6 +30,7 @@ package forklift
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -58,7 +59,39 @@ func loadError(err error) error {
 	return fmt.Errorf("cannot load package: %v", err)
 }
 
-// LoadPackage returns the package for path, or nil if it does not exist.
+// ErrNotFound neans the package was not found.
+var ErrNotFound = fmt.Errorf("package not found")
+
+var (
+	errParse = errors.New("parse error")
+	errType  = fmt.Errorf("type error")
+)
+
+func handle(p *packages.Package) (*packages.Package, error) {
+	if p == nil {
+		return nil, ErrNotFound
+	}
+	var errs []error
+	for _, err := range p.Errors {
+		switch err.Kind {
+		case packages.ListError:
+			return nil, ErrNotFound
+		case packages.ParseError:
+			errs = append(errs, errParse)
+		case packages.TypeError:
+			errs = append(errs, errType)
+		default:
+			panic(err.Kind)
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return p, nil
+}
+
+// LoadPackage returns the package for path.
+// It returns [ErrNotFound] if the package is not found, and other errors.
 func (l Loader) LoadPackage(path string) (*packages.Package, error) {
 	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode}, path)
 	if err != nil {
@@ -78,18 +111,11 @@ loop:
 		match = p
 		break
 	}
-	if match == nil {
-		return nil, nil
-	}
-	for _, err := range match.Errors {
-		if err.Kind == packages.ListError {
-			return nil, nil
-		}
-	}
-	return match, nil
+	return handle(match)
 }
 
-// LoadTestPackage returns the test package for path, or nil if it does not exist.
+// LoadTestPackage returns the test package for path.
+// It returns [ErrNotFound] if the package is not found, and other errors.
 func (l Loader) LoadTestPackage(path string) (*packages.Package, error) {
 	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode, Tests: true}, path)
 	if err != nil {
@@ -108,18 +134,11 @@ loop:
 			}
 		}
 	}
-	if match == nil {
-		return nil, nil
-	}
-	for _, err := range match.Errors {
-		if err.Kind == packages.ListError {
-			return nil, nil
-		}
-	}
-	return match, nil
+	return handle(match)
 }
 
-// LoadExternalTestPackage returns the external test package for path, or nil if it does not exist.
+// LoadExternalTestPackage returns the external test package for path.
+// It returns [ErrNotFound] if the package is not found, and other errors.
 func (l Loader) LoadExternalTestPackage(path string) (*packages.Package, error) {
 	ps, err := packages.Load(&packages.Config{Context: l.Context, Dir: l.Dir, Env: l.Env, BuildFlags: l.Flags, Mode: l.Mode, Tests: true}, path)
 	if err != nil {
@@ -132,15 +151,7 @@ func (l Loader) LoadExternalTestPackage(path string) (*packages.Package, error) 
 			break
 		}
 	}
-	if match == nil {
-		return nil, nil
-	}
-	for _, err := range match.Errors {
-		if err.Kind == packages.ListError {
-			return nil, nil
-		}
-	}
-	return match, nil
+	return handle(match)
 }
 
 var mode packages.LoadMode = packages.NeedCompiledGoFiles |
@@ -156,17 +167,20 @@ var mode packages.LoadMode = packages.NeedCompiledGoFiles |
 	packages.NeedTypesInfo |
 	packages.NeedTypesSizes
 
-// LoadPackage returns the package for path, or nil if it does not exist.
+// LoadPackage returns the package for path.
+// It returns [ErrNotFound] if the package is not found, and other errors.
 func LoadPackage(path string) (*packages.Package, error) {
 	return Loader{Mode: mode}.LoadPackage(path)
 }
 
-// LoadTestPackage returns the test package for path, or nil if it does not exist.
+// LoadTestPackage returns the test package for path.
+// It returns [ErrNotFound] if the package is not found, and other errors.
 func LoadTestPackage(path string) (*packages.Package, error) {
 	return Loader{Mode: mode}.LoadTestPackage(path)
 }
 
-// LoadExternalTestPackage returns the external test package for path, or nil if it does not exist.
+// LoadExternalTestPackage returns the external test package for path.
+// It returns [ErrNotFound] if the package is not found, and other errors.
 func LoadExternalTestPackage(path string) (*packages.Package, error) {
 	return Loader{Mode: mode}.LoadExternalTestPackage(path)
 }
