@@ -178,7 +178,6 @@ func TestLoadPackage(t *testing.T) {
 		".",
 		"github.com/willfaught/forklift",
 	} {
-		test := test
 		t.Run(test, func(t *testing.T) {
 			t.Parallel()
 			p, err := LoadPackage(test)
@@ -191,7 +190,6 @@ func TestLoadPackage(t *testing.T) {
 		"debug",
 		"runtime/asan",
 	} {
-		test := test
 		t.Run(test, func(t *testing.T) {
 			t.Parallel()
 			p, err := LoadPackage(test)
@@ -208,7 +206,6 @@ func TestLoadTestPackage(t *testing.T) {
 		".",
 		"github.com/willfaught/forklift",
 	} {
-		test := test
 		t.Run(test, func(t *testing.T) {
 			t.Parallel()
 			p, err := LoadTestPackage(test)
@@ -219,7 +216,6 @@ func TestLoadTestPackage(t *testing.T) {
 	for _, test := range []string{
 		"bad",
 	} {
-		test := test
 		t.Run(test, func(t *testing.T) {
 			t.Parallel()
 			p, err := LoadTestPackage(test)
@@ -236,7 +232,6 @@ func TestLoadExternalTestPackage(t *testing.T) {
 		".",
 		"github.com/willfaught/forklift",
 	} {
-		test := test
 		t.Run(test, func(t *testing.T) {
 			t.Parallel()
 			p, err := LoadExternalTestPackage(test)
@@ -247,7 +242,6 @@ func TestLoadExternalTestPackage(t *testing.T) {
 	for _, test := range []string{
 		"bad",
 	} {
-		test := test
 		t.Run(test, func(t *testing.T) {
 			t.Parallel()
 			p, err := LoadExternalTestPackage(test)
