@@ -18,3 +18,4 @@ jobs:
     - run: "go build -v ./..."
     - run: "go test -v ./..."
     - run: "go vet -v ./..."
+    - run: "go tool golang.org/x/vuln/cmd/govulncheck ./..."
